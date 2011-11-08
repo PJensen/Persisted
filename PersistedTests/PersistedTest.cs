@@ -48,12 +48,21 @@ namespace PersistedTests
             /// <summary>
             /// Creates a new instance of parameter helper
             /// </summary>
-            public ParameterHelper() 
+            public ParameterHelper() { }
+
+            /// <summary>
+            /// NewRandom
+            /// </summary>
+            /// <returns>returns a new ParameterHelper w/ random data in fields.</returns>
+            public static ParameterHelper NewRandom()
             {
-                DoubleData = PersistedTest.Random.NextDouble();
-                Guid = Guid.NewGuid();
-                IntData = PersistedTest.Random.Next(
-                    Int32.MinValue, Int32.MaxValue); 
+                return new ParameterHelper()
+                {
+                    DoubleData = PersistedTest.Random.NextDouble(),
+                    Guid = Guid.NewGuid(),
+                    IntData = PersistedTest.Random.Next(
+                        Int32.MinValue, Int32.MaxValue),
+                };
             }
 
             /// <summary>
@@ -70,6 +79,28 @@ namespace PersistedTests
             /// DoubleData
             /// </summary>
             public double DoubleData { get; set; }
+
+            /// <summary>
+            /// Equals
+            /// </summary>
+            /// <param name="obj">the other <see cref="ParameterHelper"/> to compare this to</param>
+            /// <returns>true if they're equal to one-another.</returns>
+            public override bool Equals(object obj)
+            {
+                ParameterHelper other = (ParameterHelper)obj;
+                return other.IntData == this.IntData &&
+                    other.DoubleData == this.DoubleData &&
+                    other.Guid == this.Guid;
+            }
+
+            /// <summary>
+            /// GetHashCode
+            /// </summary>
+            /// <returns></returns>
+            public override int GetHashCode()
+            {
+                return base.GetHashCode();
+            }
         }
 
         /// <summary>
@@ -79,7 +110,21 @@ namespace PersistedTests
         [Description("Ensures that reading functions properly")]
         public void ReadTest()
         {
-            Assert.Inconclusive("TODO");
+            string xmlFileName = GetNewXMLFile();
+            var parameterHelperExpected = ParameterHelper.NewRandom();
+
+            // get some file on disk; "read" data will be compared against parameterHelper (above)
+            try { WriteTestHelper<ParameterHelper>(parameterHelperExpected, xmlFileName, true); }
+            catch { Assert.Inconclusive("Unable to assert test correctness."); }
+
+            // read from disk as outlined above.
+            var parameterHelperActual = Persisted.Read<ParameterHelper>(xmlFileName);
+
+            // compare what we wrote with what we read.
+            Assert.AreEqual(parameterHelperExpected, parameterHelperActual);
+
+            // make sure they're not the "same" object.
+            Assert.AreNotSame(parameterHelperExpected, parameterHelperActual);
         }
 
         /// <summary>
@@ -101,6 +146,33 @@ namespace PersistedTests
         {
             WriteTestHelper<ParameterHelper>(
                 new ParameterHelper(), GetNewXMLFile(), true);
+        }
+
+        [TestMethod]
+        [Description("Ensure empty file names cannot be read")]
+        [ExpectedException(typeof(ArgumentException))]
+        public void ReadBreaksOnEmptyFileName()
+        {
+            "".Read<Object>();
+        }
+
+        [TestMethod]
+        [Description("Ensure null file names cannot be read")]
+        [ExpectedException(typeof(ArgumentException))]
+        public void ReadBreaksOnNullFileName()
+        {
+            string v = null;
+            v.Read<Object>();
+        }
+
+        [TestMethod]
+        [Description("Ensure files that dont exist kick off IOException.")]
+        [ExpectedException(typeof(IOException))]
+        public void ReadBreaksOnFileNotFound()
+        {
+            string strFileName = Guid.NewGuid().ToString();
+            ParameterHelper v = new ParameterHelper();
+            var readValue = Persisted.Read<ParameterHelper>(strFileName);
         }
 
         /// <summary>
