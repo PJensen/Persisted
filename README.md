@@ -3,8 +3,11 @@
 
 # Usage
 ```.cs
+
 // Include persisted
 using System.Xml.Serialization.Persisted;
+
+namespace Demo { 
 
 	void Main(string[] argv) {
 
@@ -27,6 +30,8 @@ using System.Xml.Serialization.Persisted;
 
 		#endregion
 	}
+
+}
 ```
 
 # License
