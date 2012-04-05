@@ -22,18 +22,6 @@ namespace System.Xml.Serialization.Persisted
 {
     #region Various supported interfaces may reside here.
 
-    /// <summary>
-    /// For complex objects that have implement IPersisted they can use 
-    /// Read directly without having to drop down to the string level.
-    /// </summary>
-    public partial interface IPersisted<T>
-    {
-        /// <summary>
-        /// The location that this disk-file that this IPersisted(T) resides in.
-        /// </summary>
-        [XmlIgnore]
-        string FileName { get; set; }
-    }
 
     #endregion
 
@@ -51,7 +39,7 @@ namespace System.Xml.Serialization.Persisted
         /// <exception cref="IOException">{strFullPath} not found</exception>
         public static T Read<T>(this string strFullPath)
         {
-            if (string.Empty.Equals(strFullPath) || strFullPath == null)
+            if (string.Empty.Equals(strFullPath ?? string.Empty))
                 throw new ArgumentException("strFullPath cannot be null or empty");
             if (!File.Exists(strFullPath))
                 throw new IOException(string.Format("{0} not found", strFullPath));
@@ -87,29 +75,6 @@ namespace System.Xml.Serialization.Persisted
                 return true;
             }
             catch { return false; }
-        }
-
-        /// <summary>
-        /// Read a templated generic type from the passed <see cref="IPersisted"/>.
-        /// </summary>
-        /// <typeparam name="T">The templated type being persisted.</typeparam>
-        /// <param name="aPersisted">The actual object being peristed.</param>
-        /// <returns></returns>
-        public static T Read<T>(this IPersisted<T> aPersisted)
-        {
-            return aPersisted.FileName.Read<T>();
-        }
-
-        /// <summary>
-        /// Writes the IPersisted object to the location defined in the interface.
-        /// <see cref="IPersisted"/>
-        /// </summary>
-        /// <typeparam name="T">The templated type param</typeparam>
-        /// <param name="aObj">The actual object that is written to disk.</param>
-        /// <returns>true when the operation was a success.</returns>
-        public static bool Write<T>(this IPersisted<T> aObj)
-        {
-            return aObj.Write(aObj.FileName);
         }
     }
 }
