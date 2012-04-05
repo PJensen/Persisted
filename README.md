@@ -9,27 +9,31 @@ using System.Xml.Serialization.Persisted;
 
 namespace Demo { 
 
-	void Main(string[] argv) {
+   void Main(string[] argv) {
 
-		#region Writing Objects
+      #region Writing Objects
 
-		var myObject = new MyObject();
+      var myObject = new MyObject();
 
-		Persisted.Write<MyObject>(myObject, strFileName);
+      // method 1
+      Persisted.Write<MyObject>(myObject, strFileName);
 
-		#endregion
+      // method 2
+      myObject.Write<myObject>(strFileName);
+
+      #endregion
 
 
-		#region Reading Objects
+      #region Reading Objects
 
-		// method 1
-		var myObject = Persisted.Read<MyObject>(strFileName);
+      // method 1
+      var myObject = Persisted.Read<MyObject>(strFileName);
 
-		// method 2
-		var myObject =	strFileName.Read<MyObject>();
+      // method 2
+      var myObject = strFileName.Read<MyObject>();
 
-		#endregion
-	}
+      #endregion
+   }
 
 }
 ```
