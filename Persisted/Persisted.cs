@@ -20,13 +20,9 @@ using System.IO;
 
 namespace System.Xml.Serialization.Persisted
 {
-    #region Various supported interfaces may reside here.
-
-
-    #endregion
-
     /// <summary>
     /// Extension method that rides on top of all obects.
+    /// <seealso cref="http://github.com/PJensen/Persisted"/>
     /// </summary>
     public static class Persisted
     {
@@ -39,13 +35,13 @@ namespace System.Xml.Serialization.Persisted
         /// <exception cref="IOException">{strFullPath} not found</exception>
         public static T Read<T>(this string strFullPath)
         {
-            if (string.Empty.Equals(strFullPath ?? string.Empty))
+            if (string.IsNullOrEmpty(strFullPath))
                 throw new ArgumentException("strFullPath cannot be null or empty");
             if (!File.Exists(strFullPath))
-                throw new IOException(string.Format("{0} not found", strFullPath));
+                throw new IOException(string.Format("The file \"{0}\" was not found", strFullPath));
             using (Stream fs = new FileStream(strFullPath, FileMode.Open))
             {
-                XmlSerializer serializer = new XmlSerializer(typeof(T));
+                var serializer = new XmlSerializer(typeof(T));
                 return (T)serializer.Deserialize(fs);
             }
         }
@@ -63,14 +59,18 @@ namespace System.Xml.Serialization.Persisted
         /// </param>
         /// <returns>true when the operation was a success.</returns>
         public static bool Write<T>(this T aObj, string strFullPath)
+            where T: class, new()
         {
+            if (aObj == null)
+                throw new ArgumentException("The object to serialize cannot be null.");
+            if (string.IsNullOrEmpty(strFullPath))
+                throw new ArgumentException("The fullpath was null or empty.");
+
             try
             {
-                string strDirectory = Path.GetDirectoryName(strFullPath);
-                if (!Directory.Exists(strDirectory) && !string.Empty.Equals(strDirectory))
-                    Directory.CreateDirectory(strDirectory);
-                using (FileStream tmpRawStream = File.Open(strFullPath, FileMode.OpenOrCreate))
-                using (XmlTextWriter tmpXmlWriter = new XmlTextWriter(tmpRawStream, new System.Text.UTF8Encoding()))
+                using (var tmpRawStream = File.Open(strFullPath, 
+                    File.Exists(strFullPath) ? FileMode.Truncate : FileMode.CreateNew))
+                using (var tmpXmlWriter = new XmlTextWriter(tmpRawStream, new System.Text.UTF8Encoding()))
                     new XmlSerializer(aObj.GetType()).Serialize(tmpXmlWriter, aObj);
                 return true;
             }
