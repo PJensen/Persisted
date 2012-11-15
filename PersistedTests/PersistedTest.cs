@@ -32,7 +32,7 @@ namespace PersistedTests
         /// <summary>
         /// Random
         /// </summary>
-        static Random Random = new Random();
+        static readonly Random Random = new Random();
 
         /// <summary>
         /// Creates a new instance of PersistedTest
@@ -46,9 +46,29 @@ namespace PersistedTests
         public class ParameterHelper
         {
             /// <summary>
-            /// Creates a new instance of parameter helper
+            /// 
             /// </summary>
-            public ParameterHelper() { }
+            /// <param name="other"></param>
+            /// <returns></returns>
+            protected bool Equals(ParameterHelper other)
+            {
+                return IntData == other.IntData && Guid.Equals(other.Guid) && DoubleData.Equals(other.DoubleData);
+            }
+
+            /// <summary>
+            /// GetHashCode
+            /// </summary>
+            /// <returns></returns>
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    var hashCode = IntData;
+                    hashCode = (hashCode * 397) ^ Guid.GetHashCode();
+                    hashCode = (hashCode * 397) ^ DoubleData.GetHashCode();
+                    return hashCode;
+                }
+            }
 
             /// <summary>
             /// NewRandom
@@ -87,19 +107,9 @@ namespace PersistedTests
             /// <returns>true if they're equal to one-another.</returns>
             public override bool Equals(object obj)
             {
-                ParameterHelper other = (ParameterHelper)obj;
-                return other.IntData == this.IntData &&
-                    other.DoubleData == this.DoubleData &&
-                    other.Guid == this.Guid;
-            }
-
-            /// <summary>
-            /// GetHashCode
-            /// </summary>
-            /// <returns></returns>
-            public override int GetHashCode()
-            {
-                return base.GetHashCode();
+                if (ReferenceEquals(null, obj)) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                return obj.GetType() == this.GetType() && Equals((ParameterHelper)obj);
             }
         }
 
@@ -110,7 +120,7 @@ namespace PersistedTests
         [Description("Ensures that reading functions properly")]
         public void ReadTest()
         {
-            string xmlFileName = GetNewXMLFile();
+            var xmlFileName = GetNewXmlFile();
             var parameterHelperExpected = ParameterHelper.NewRandom();
 
             // get some file on disk; "read" data will be compared against parameterHelper (above)
@@ -118,7 +128,7 @@ namespace PersistedTests
             catch { Assert.Inconclusive("Unable to assert test correctness."); }
 
             // read from disk as outlined above.
-            var parameterHelperActual = Persisted.Read<ParameterHelper>(xmlFileName);
+            var parameterHelperActual = xmlFileName.Read<ParameterHelper>();
 
             // compare what we wrote with what we read.
             Assert.AreEqual(parameterHelperExpected, parameterHelperActual);
@@ -131,9 +141,10 @@ namespace PersistedTests
         /// A test for Write
         /// </summary>
         /// <typeparam name="T">The <see cref="Type"/> to be persisted.</typeparam>
-        public void WriteTestHelper<T>(T aObj, string strFullPath, bool expected = true)
+        public void WriteTestHelper<T>(T aObj, string strFullPath, bool expected = true) 
+            where T : class, new()
         {
-            Assert.AreEqual(expected, Persisted.Write<T>(aObj, strFullPath));
+            Assert.AreEqual(expected, aObj.Write(strFullPath));
             Assert.IsTrue(File.Exists(strFullPath));
         }
 
@@ -145,7 +156,7 @@ namespace PersistedTests
         public void WriteTest()
         {
             WriteTestHelper<ParameterHelper>(
-                new ParameterHelper(), GetNewXMLFile(), true);
+                new ParameterHelper(), GetNewXmlFile(), true);
         }
 
         [TestMethod]
@@ -170,9 +181,39 @@ namespace PersistedTests
         [ExpectedException(typeof(IOException))]
         public void ReadBreaksOnFileNotFound()
         {
-            string strFileName = Guid.NewGuid().ToString();
-            ParameterHelper v = new ParameterHelper();
-            var readValue = Persisted.Read<ParameterHelper>(strFileName);
+            var strFileName = Guid.NewGuid().ToString();
+            var v = new ParameterHelper();
+            var readValue = strFileName.Read<ParameterHelper>();
+        }
+
+        /// <summary>
+        /// WriteBreaksOnNullObject
+        /// </summary>
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentException))]
+        public void WriteBreaksOnNullObject()
+        {
+            Persisted.Write<object>(null, "");
+        }
+
+        /// <summary>
+        /// WriteBreaksOnEmptyPath
+        /// </summary>
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentException))]
+        public void WriteBreaksOnEmptyPath()
+        {
+            new object().Write("");
+        }
+
+        /// <summary>
+        /// WriteBreaksOnNullPath
+        /// </summary>
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentException))]
+        public void WriteBreaksOnNullPath()
+        {
+            new object().Write(null);
         }
 
         /// <summary>
@@ -203,10 +244,10 @@ namespace PersistedTests
         /// Returns a new uniquely named XML inside of the TestDir
         /// </summary>
         /// <returns>a new uniquely named XML inside of the TestDir</returns>
-        string GetNewXMLFile()
+        string GetNewXmlFile()
         {
             return Path.Combine(TestContext.TestDir,
-                Guid.NewGuid().ToString() + ".xml");
+                Guid.NewGuid() + ".xml");
         }
     }
 }
